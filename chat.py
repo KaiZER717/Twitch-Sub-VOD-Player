@@ -1,0 +1,76 @@
+import subprocess
+import getpass
+import os.path
+import sys
+import threading
+import time
+
+
+class Message:
+    def __init__(self, timesign, sender, mess):
+        self.key = sender + str(timesign)
+        self.timesign = timesign
+        self.sender = "".join([sender[j] for j in range(len(sender)) if ord(sender[j]) in range(65536)])
+        self.mess = "".join([mess[j] for j in range(len(mess)) if ord(mess[j]) in range(65536)])
+        self.colour = ["#FF0000", "#0000FF", "#FF7F50",
+                       "#9ACD32", "#FF4500", "#FF4500",
+                       "#5F9EA0", "#1E90FF", "#8A2BE2",
+                       "#00FF7F"][int(str(len(sender) ** 2.5)[0])]
+
+    def __str__(self):
+        return f'{self.timesign} {self.sender}: {self.mess}'
+
+
+def download_thread(script, log_path, vod_id):
+    subprocess.run(script)
+    print(f"Logs downloaded => {log_path}")
+    # TODO rename logs
+
+
+def log_download(vod_id):
+    executable = sys.executable.split('\\')[-2]
+    tcd_path = f"C:\\Users\\{getpass.getuser()}\\AppData\\Roaming\\Python\\{executable}\\Scripts\\tcd.exe"
+    script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
+    if not os.path.exists(f"{script_path}\\logs"):
+        os.mkdir(f"{script_path}\\logs")
+    log_path = f"{script_path}\\logs\\{vod_id}.txt"
+    args_ = f"-v {vod_id} -o {script_path}\\logs"
+    script = f"{tcd_path} {args_}"
+    downloader = threading.Thread(target=download_thread, args=(script, log_path, vod_id))
+    if not os.path.exists(log_path):
+        if os.path.exists(tcd_path):
+            print("Downloading logs ...")
+            downloader.start()
+
+        else:
+            return "path error"
+    return log_path
+
+
+def message_dict(vod_id):
+    log_path = log_download(vod_id)
+    if log_path == "path error":
+        return "path error"
+    while not os.path.exists(log_path):
+        time.sleep(1)
+    logs = open(log_path, encoding="utf-8", errors="ignore").read().split("\n")[:-1]
+    messages = {}
+    for mess in logs:
+
+        tm = mess[:9][1:8].split(":")
+        tm_format = str(int(tm[0]) * 3600 + int(tm[1]) * 60 + int(tm[2]))
+
+        if tm[0] != "0":
+            time_sign = (":".join(tm))
+        else:
+            time_sign = (":".join(tm[1:]))
+
+        mess_sender = mess.split(" ")[1][1:-1]
+        mes = " ".join(mess.split(" ")[2:])
+
+        if tm_format in messages:
+            messages[tm_format].append(Message(time_sign, mess_sender, mes))
+        else:
+            messages[tm_format] = [Message(time_sign, mess_sender, mes)]
+
+    return messages
