@@ -17,7 +17,7 @@ if not sys.version_info.major == 3 and sys.version_info.minor >= 5:
 vod = find_vod.vod_selector()
 
 
-# GUI scale events com1
+# GUI scale events com2
 
 def get_val_motion(event):
     global scal, player
