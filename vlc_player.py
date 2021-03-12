@@ -1,10 +1,11 @@
 import datetime
 import threading
 import tkinter.font as tkFont
-import vlc
 from time import sleep
 from tkinter import *
 from tkinter import scrolledtext, ttk
+
+import vlc
 
 import chat
 import find_vod
@@ -55,11 +56,11 @@ def print_mess(mess):
     console.configure(state='disabled')  # disable editing
 
 
-def chat_sync(player, vod_id):
+def chat_sync(player, vod):
     printed = []
     while player_playing:
         sleep(.4)
-        messages = chat.message_dict(vod_id)
+        messages = chat.message_dict(vod)
         if messages == "path error":
             on_closing()
         timecode = str(int(vlc.libvlc_media_player_get_time(player) // 1000) - 1)
@@ -149,7 +150,7 @@ player.play()
 # Thread creating
 
 thread_chat = threading.Thread(target=player_sync, daemon=True)
-thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod.vod_id))
+thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod), daemon=True)
 thread_chat_sync.start()
 thread_chat.start()
 
@@ -159,7 +160,7 @@ def on_closing():
     player_playing = False
     player.stop()
     root.destroy()
-    return
+    sys.exit(1)
 
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
