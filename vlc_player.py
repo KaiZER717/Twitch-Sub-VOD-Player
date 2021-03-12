@@ -30,9 +30,31 @@ def get_vol_motion(event):
     vlc.libvlc_audio_set_volume(player, vol_scal.get())
 
 
+# Navigating event
+def forwarding(event):
+    global scal, player, player_playing
+    player_playing = False
+    scal.set(scal.get() + .005)
+    vlc.libvlc_media_player_set_position(player, scal.get())
+    player_playing = True
+
+
+def rewind(event):
+    global scal, player, player_playing
+    player_playing = False
+    scal.set(scal.get() - .005)
+    vlc.libvlc_media_player_set_position(player, scal.get())
+    player_playing = True
+
+
 # Stopping event
 
 def play_pause():
+    global player
+    vlc.libvlc_media_player_pause(player)
+
+
+def play_pause_key(event):
     global player
     vlc.libvlc_media_player_pause(player)
 
@@ -57,6 +79,7 @@ def print_mess(mess):
 
 
 def chat_sync(player, vod):
+    global player_playing
     printed = []
     while player_playing:
         sleep(.4)
@@ -77,15 +100,15 @@ def chat_sync(player, vod):
 
 
 def player_sync():
-    global scal, label
-
-    while player_playing:
+    global scal, label, player_playing
+    while True:
+        if player_playing:
+            time_sign = vlc.libvlc_media_player_get_time(player)
+            lenght = vlc.libvlc_media_player_get_length(player) + (1 / 10 * 8)
+            formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
+            label["text"] = formated
+            scal.set(time_sign / lenght)
         sleep(1)
-        time_sign = vlc.libvlc_media_player_get_time(player)
-        lenght = vlc.libvlc_media_player_get_length(player) + (1 / 10 * 8)
-        formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
-        label["text"] = formated
-        scal.set(time_sign / lenght)
 
 
 # Create main widget
@@ -123,6 +146,9 @@ label['foreground'] = "#c8c8c8"
 
 scal.bind("<ButtonRelease-1>", get_val_motion)
 vol_scal.bind("<ButtonRelease-1>", get_vol_motion)
+root.bind("<space>", play_pause_key)
+root.bind('<Right>', forwarding)
+root.bind('<Left>', rewind)
 vol_scal.set(100)
 
 # Packing
@@ -149,7 +175,7 @@ player.play()
 
 # Thread creating
 
-thread_chat = threading.Thread(target=player_sync, daemon=True)
+thread_chat = threading.Thread(target=player_sync)
 thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod), daemon=True)
 thread_chat_sync.start()
 thread_chat.start()

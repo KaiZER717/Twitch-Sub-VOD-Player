@@ -53,10 +53,13 @@ def log_download(vod):
             file_name = file_name.replace(sym, " ")
 
     rename_path = f"{script_path}\\logs\\{vod.channel}\\{file_name}.txt"
+
     log_path = f"{script_path}\\logs\\cache\\{vod.vod_id}.txt"
+
     downloader = threading.Thread(target=download_thread, args=(script, log_path, rename_path))
 
     if not os.path.exists(log_path):
+
         if os.path.exists(tcd_path):
             downloader.start()
         else:
@@ -66,12 +69,15 @@ def log_download(vod):
 
 def message_dict(vod):
     log_path = log_download(vod)
+
     if log_path == "path error":
         return "path error"
+
     while not os.path.exists(log_path):
         time.sleep(1)
     logs = open(log_path, encoding="utf-8", errors="ignore").read().split("\n")[:-1]
     messages = {}
+
     for mess in logs:
 
         tm = mess[:9][1:8].split(":")
