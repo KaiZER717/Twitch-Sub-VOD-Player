@@ -30,31 +30,9 @@ def get_vol_motion(event):
     vlc.libvlc_audio_set_volume(player, vol_scal.get())
 
 
-# Navigating event
-def forwarding(event):
-    global scal, player, player_playing
-    player_playing = False
-    scal.set(scal.get() + .005)
-    vlc.libvlc_media_player_set_position(player, scal.get())
-    player_playing = True
-
-
-def rewind(event):
-    global scal, player, player_playing
-    player_playing = False
-    scal.set(scal.get() - .005)
-    vlc.libvlc_media_player_set_position(player, scal.get())
-    player_playing = True
-
-
 # Stopping event
 
 def play_pause():
-    global player
-    vlc.libvlc_media_player_pause(player)
-
-
-def play_pause_key(event):
     global player
     vlc.libvlc_media_player_pause(player)
 
@@ -72,43 +50,44 @@ def print_mess(mess):
         console.insert(END, ": ", 'mess')
         console.insert(END, str(mess.mess) + "\n", 'mess')
         console.tag_config('mess', foreground='#FFFFFF')
-    except:
+    except UnicodeError:
         print(mess.mess)
     console.yview(END)  # autoscroll
     console.configure(state='disabled')  # disable editing
 
 
-def chat_sync(player, vod):
-    global player_playing
-    printed = []
-    while player_playing:
-        sleep(.4)
-        messages = chat.message_dict(vod)
-        if messages == "path error":
-            on_closing()
-        timecode = str(int(vlc.libvlc_media_player_get_time(player) // 1000) - 1)
-        if timecode in messages:
-            if len(messages[timecode]) != 1:
-                for mes1 in messages[timecode]:
-                    if mes1.key not in printed:
-                        print_mess(mes1)
-                        printed.append(mes1.key)
-            else:
-                if messages[timecode][0].key not in printed:
-                    print_mess(messages[timecode][0])
-                    printed.append(messages[timecode][0].key)
-
-
 def player_sync():
-    global scal, label, player_playing
+    global scal, label
     while True:
-        if player_playing:
+        if vlc.libvlc_media_player_is_playing(player) == 1:
             time_sign = vlc.libvlc_media_player_get_time(player)
             lenght = vlc.libvlc_media_player_get_length(player) + (1 / 10 * 8)
             formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
             label["text"] = formated
             scal.set(time_sign / lenght)
-        sleep(1)
+        sleep(0.5)
+
+
+def chat_sync(player, vod):
+    global player_playing
+    printed = []
+    while True:
+        if vlc.libvlc_media_player_is_playing(player) == 1:
+            messages = chat.message_dict(vod)
+            if messages == "path error":
+                on_closing()
+            timecode = str(int(vlc.libvlc_media_player_get_time(player) // 1000) - 1)
+            if timecode in messages:
+                if len(messages[timecode]) != 1:
+                    for mes1 in messages[timecode]:
+                        if mes1.key not in printed:
+                            print_mess(mes1)
+                            printed.append(mes1.key)
+                else:
+                    if messages[timecode][0].key not in printed:
+                        print_mess(messages[timecode][0])
+                        printed.append(messages[timecode][0].key)
+        sleep(.4)
 
 
 # Create main widget
@@ -127,12 +106,12 @@ console = scrolledtext.ScrolledText(root, width=50, height=50,
                                     highlightthickness=0)
 button = ttk.Button(root, text="Pause", command=play_pause)
 scal = Scale(root, orient=HORIZONTAL, length=373, from_=0,
-             to=1, resolution=0.005, sliderlength=10, fg="#f0f0f0",
+             to=1, resolution=0.001, sliderlength=10, fg="#f0f0f0",
              borderwidth=0, highlightthickness=0)
 vol_scal = Scale(root, orient=HORIZONTAL, length=80,
                  from_=0, to=100, resolution=1, sliderlength=10,
                  borderwidth=0, highlightthickness=0)
-player_label = Label(root)
+player_frame = Label(root)
 label = Label(root)
 
 console['background'] = "#313335"
@@ -146,14 +125,14 @@ label['foreground'] = "#c8c8c8"
 
 scal.bind("<ButtonRelease-1>", get_val_motion)
 vol_scal.bind("<ButtonRelease-1>", get_vol_motion)
-root.bind("<space>", play_pause_key)
-root.bind('<Right>', forwarding)
-root.bind('<Left>', rewind)
+root.bind("<space>", lambda event: vlc.libvlc_media_player_pause(player))
+root.bind('<Right>', lambda event: vlc.libvlc_media_player_set_position(player, scal.get() + 0.001))
+root.bind('<Left>', lambda event: vlc.libvlc_media_player_set_position(player, scal.get() - 0.001))
 vol_scal.set(100)
 
 # Packing
 
-player_label.place(x=0, y=0, relwidth=.78, relheight=.94)
+player_frame.place(x=0, y=0, relwidth=.78, relheight=.94)
 
 button.place(x=5, rely=0.95, relwidth=.05, relheight=.04)
 vol_scal.place(relx=.08, rely=0.94, relwidth=.05, relheight=.1)
@@ -170,23 +149,20 @@ media = Instance.media_new(vod.vod_link)
 player.set_media(media)
 player_playing = True
 vlc.libvlc_audio_set_volume(player, 100)
-player.set_hwnd(player_label.winfo_id())
+player.set_hwnd(player_frame.winfo_id())
 player.play()
-
 # Thread creating
 
-thread_chat = threading.Thread(target=player_sync)
+thread_chat = threading.Thread(target=player_sync, daemon=True)
 thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod), daemon=True)
 thread_chat_sync.start()
 thread_chat.start()
 
 
 def on_closing():
-    global player_playing
-    player_playing = False
-    player.stop()
+    vlc.libvlc_media_player_stop(player)
     root.destroy()
-    sys.exit(1)
+    sys.exit(7)
 
 
 root.protocol("WM_DELETE_WINDOW", on_closing)

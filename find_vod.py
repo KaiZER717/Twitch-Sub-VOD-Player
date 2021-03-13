@@ -8,7 +8,7 @@ class Vods:
         msk_min = vod_date.split("T")[1].split(":")[1]
         msk_sec = vod_date.split("T")[1].split(":")[2]
 
-        res_fps = "720p60"
+        res_fps = "chunked"
 
         self.vod_date = f"{msk_date} {msk_hour}:{msk_min}:{msk_sec[:-1]}"
         self.vod_id = vod_id[1:]

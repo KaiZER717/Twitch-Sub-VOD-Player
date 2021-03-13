@@ -26,40 +26,33 @@ def download_thread(script, log_path, rename_path):
     print("Downloading logs ...")
     subprocess.run(script)
     print(f"Logs downloaded => {rename_path}")
-    shutil.copyfile(log_path, rename_path)
+    if not os.path.exists(rename_path):
+        shutil.copyfile(log_path, rename_path)
 
 
 def log_download(vod):
     executable = sys.executable.split('\\')[-2]
-    tcd_path = f"C:\\Users\\{getpass.getuser()}\\AppData\\Roaming\\Python\\{executable}\\Scripts\\tcd.exe"
+    tcd_path = f"C:\\Users\\{getpass.getuser()}\\AppData\\Local\\Programs\\Python\\{executable}\\Scripts\\tcd.exe"
     script_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-
     if not os.path.exists(f"{script_path}\\logs\\"):
         os.mkdir(f"{script_path}\\logs")
-
     if not os.path.exists(f"{script_path}\\logs\\{vod.channel}\\"):
         os.mkdir(f"{script_path}\\logs\\{vod.channel}")
-
     if not os.path.exists(f"{script_path}\\logs\\cache\\"):
         os.mkdir(f"{script_path}\\logs\\cache")
-
     args_ = f"-v {vod.vod_id} -o {script_path}\\logs\\cache\\"
     script = f"{tcd_path} {args_}"
-
     file_name = f"{vod.vod_name} [{vod.vod_date}]"
-
     for sym in ["\\", "|", "/", ":", "?", "*", "<", ">", '"']:
         if sym in file_name:
             file_name = file_name.replace(sym, " ")
 
     rename_path = f"{script_path}\\logs\\{vod.channel}\\{file_name}.txt"
-
     log_path = f"{script_path}\\logs\\cache\\{vod.vod_id}.txt"
 
     downloader = threading.Thread(target=download_thread, args=(script, log_path, rename_path))
 
     if not os.path.exists(log_path):
-
         if os.path.exists(tcd_path):
             downloader.start()
         else:
@@ -69,7 +62,6 @@ def log_download(vod):
 
 def message_dict(vod):
     log_path = log_download(vod)
-
     if log_path == "path error":
         return "path error"
 
