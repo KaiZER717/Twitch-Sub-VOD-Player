@@ -12,4 +12,4 @@ pip install -r requirements.txt
   => choose channel
   => choose VOD
 
-## if there are problems with chat, delete the folder logs/cache
+## if have problems with chat, delete the folder logs/cache
