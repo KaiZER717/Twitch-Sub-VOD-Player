@@ -5,15 +5,16 @@ import tkinter.font as tkFont
 from time import sleep
 from tkinter import *
 from tkinter import scrolledtext, ttk
-import sys
+
 import vlc
 
 import chat
 import find_vod
 
-if not sys.version_info.major == 3 and sys.version_info.minor >= 5:
-    print("This script requires Python 3.5 or higher!")
+if not sys.version_info.major == 3 and sys.version_info.minor >= 7:
+    print("This script requires Python 3.7 or higher!")
     print(f"You are using Python {sys.version_info.major}.{sys.version_info.minor}")
+    input()
     sys.exit(1)
 
 vod = find_vod.vod_selector()
@@ -36,13 +37,8 @@ def get_navscale_release(event):
 
 def get_volscale_release(event):
     global vol_scal, player
-    vlc.libvlc_media_player_pause(player)
     vlc.libvlc_audio_set_volume(player, vol_scal.get())
-    if not vlc.libvlc_media_player_is_playing(player):
-        vlc.libvlc_media_player_pause(player)
 
-
-# Pause event
 
 def play_pause():
     global player
@@ -63,14 +59,14 @@ def print_mess(mess):
         console.insert(END, str(mess.mess) + "\n", 'mess')
         console.tag_config('mess', foreground='#FFFFFF')
     except UnicodeError:
-        print(mess.mess)
+        print("error " + mess.mess)
     console.yview(END)  # autoscroll
     console.configure(state='disabled')  # disable editing
 
 
 def player_sync():
-    global scal, label
-    while True:
+    global scal, label, thread_status
+    while thread_status:
         if vlc.libvlc_media_player_is_playing(player) == 1:
             time_sign = vlc.libvlc_media_player_get_time(player)
             lenght = vlc.libvlc_media_player_get_length(player) + (1 / 10 * 8)
@@ -81,9 +77,9 @@ def player_sync():
 
 
 def chat_sync(player, vod):
-    global player_playing
+    global thread_status
     printed = []
-    while True:
+    while thread_status:
         if vlc.libvlc_media_player_is_playing(player) == 1:
             messages = chat.message_dict(vod)
             if messages == "path error":
@@ -155,27 +151,29 @@ vol_scal.set(100)
 # Packing
 
 player_frame.place(x=0, y=0, relwidth=.78, relheight=.94)
-
 button.place(x=5, rely=0.95, relwidth=.05, relheight=.04)
 vol_scal.place(relx=.08, rely=0.94, relwidth=.05, relheight=.1)
 scal.place(relx=.15, rely=0.94, relwidth=.5, relheight=.1)
 label.place(relx=.67, rely=0.953, relwidth=.05, relheight=0.05)
-
 console.place(relx=.78, rely=0, relwidth=.22, relheight=1)
 
 # Thread creating
 
 thread_chat = threading.Thread(target=player_sync, daemon=True)
 thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod), daemon=True)
+thread_status = True
+player.set_hwnd(player_frame.winfo_id())
+
+player.play()
 thread_chat_sync.start()
 thread_chat.start()
-player.set_hwnd(player_frame.winfo_id())
-player.play()
 
 
 def on_closing():
+    global thread_status
+    thread_status = False
     vlc.libvlc_media_player_stop(player)
-    root.destroy()
+    root.quit()
     sys.exit(7)
 
 
