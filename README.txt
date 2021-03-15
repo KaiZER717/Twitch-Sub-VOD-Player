@@ -5,7 +5,6 @@ pip install -r requirements.txt
 
 ## first launch
 open cmd, print "tcd"
-
-## set Client_id and secret
+  # set your twitch client_id and client_secret
 
 ## if there are problems with chat, delete the folder logs/cache
