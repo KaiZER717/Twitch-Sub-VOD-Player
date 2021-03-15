@@ -1,4 +1,5 @@
 import datetime
+import sys
 import threading
 import tkinter.font as tkFont
 from time import sleep
@@ -18,19 +19,30 @@ if not sys.version_info.major == 3 and sys.version_info.minor >= 5:
 vod = find_vod.vod_selector()
 
 
-# GUI scale events
+# Navigate events
 
-def get_val_motion(event):
+def get_navscale_motion(event):
+    global player
+    if vlc.libvlc_media_player_is_playing(player):
+        vlc.libvlc_media_player_pause(player)
+
+
+def get_navscale_release(event):
     global scal, player
     vlc.libvlc_media_player_set_position(player, scal.get())
+    if not vlc.libvlc_media_player_is_playing(player):
+        vlc.libvlc_media_player_pause(player)
 
 
-def get_vol_motion(event):
+def get_volscale_release(event):
     global vol_scal, player
+    vlc.libvlc_media_player_pause(player)
     vlc.libvlc_audio_set_volume(player, vol_scal.get())
+    if not vlc.libvlc_media_player_is_playing(player):
+        vlc.libvlc_media_player_pause(player)
 
 
-# Stopping event
+# Pause event
 
 def play_pause():
     global player
@@ -65,7 +77,7 @@ def player_sync():
             formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
             label["text"] = formated
             scal.set(time_sign / lenght)
-        sleep(0.5)
+        sleep(.8)
 
 
 def chat_sync(player, vod):
@@ -98,6 +110,15 @@ root.geometry("1280x720")
 root.minsize(width=1000, height=650)
 font_tp = tkFont.Font(family="roobert", size=11)
 
+# VLC player creating
+
+Instance = vlc.Instance()
+player = Instance.media_player_new()
+media = Instance.media_new(vod.vod_link)
+player.set_media(media)
+player_playing = True
+vlc.libvlc_audio_set_volume(player, 100)
+
 # Create widgets
 
 console = scrolledtext.ScrolledText(root, width=50, height=50,
@@ -106,7 +127,7 @@ console = scrolledtext.ScrolledText(root, width=50, height=50,
                                     highlightthickness=0)
 button = ttk.Button(root, text="Pause", command=play_pause)
 scal = Scale(root, orient=HORIZONTAL, length=373, from_=0,
-             to=1, resolution=0.001, sliderlength=10, fg="#f0f0f0",
+             to=1, resolution=0.0001, sliderlength=10, fg="#f0f0f0",
              borderwidth=0, highlightthickness=0)
 vol_scal = Scale(root, orient=HORIZONTAL, length=80,
                  from_=0, to=100, resolution=1, sliderlength=10,
@@ -123,11 +144,12 @@ vol_scal['foreground'] = "#c8c8c8"
 label['background'] = "#313335"
 label['foreground'] = "#c8c8c8"
 
-scal.bind("<ButtonRelease-1>", get_val_motion)
-vol_scal.bind("<ButtonRelease-1>", get_vol_motion)
+scal.bind("<B1-Motion>", get_navscale_motion)
+scal.bind("<ButtonRelease-1>", get_navscale_release)
+
+vol_scal.bind("<ButtonRelease-1>", get_volscale_release)
 root.bind("<space>", lambda event: vlc.libvlc_media_player_pause(player))
-root.bind('<Right>', lambda event: vlc.libvlc_media_player_set_position(player, scal.get() + 0.001))
-root.bind('<Left>', lambda event: vlc.libvlc_media_player_set_position(player, scal.get() - 0.001))
+
 vol_scal.set(100)
 
 # Packing
@@ -141,22 +163,14 @@ label.place(relx=.67, rely=0.953, relwidth=.05, relheight=0.05)
 
 console.place(relx=.78, rely=0, relwidth=.22, relheight=1)
 
-# VLC player creating
-
-Instance = vlc.Instance()
-player = Instance.media_player_new()
-media = Instance.media_new(vod.vod_link)
-player.set_media(media)
-player_playing = True
-vlc.libvlc_audio_set_volume(player, 100)
-player.set_hwnd(player_frame.winfo_id())
-player.play()
 # Thread creating
 
 thread_chat = threading.Thread(target=player_sync, daemon=True)
 thread_chat_sync = threading.Thread(target=chat_sync, args=(player, vod), daemon=True)
 thread_chat_sync.start()
 thread_chat.start()
+player.set_hwnd(player_frame.winfo_id())
+player.play()
 
 
 def on_closing():
