@@ -105,7 +105,7 @@ def chat_sync(player, vod):
 # Create main widget
 
 root = Tk()
-root.title("VOD Player")
+root.title(vod.vod_name)
 root.geometry("1280x720")
 root.minsize(width=1000, height=650)
 font_tp = tkFont.Font(family="roobert", size=11)
