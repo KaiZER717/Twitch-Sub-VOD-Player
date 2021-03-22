@@ -24,7 +24,7 @@ class Message:
 
 def download_thread(script, log_path, rename_path):
     print("Downloading logs ...")
-    download_proc = subprocess.call(script,stdout=open(os.devnull, 'wb'))
+    download_proc = subprocess.call(script, stdout=open(os.devnull, 'wb'))
     print(f"Logs downloaded => {rename_path}")
     if not os.path.exists(rename_path):
         shutil.copyfile(log_path, rename_path)
@@ -40,7 +40,7 @@ def log_download(vod):
         os.mkdir(f"{script_path}\\logs\\{vod.channel}")
     if not os.path.exists(f"{script_path}\\logs\\cache\\"):
         os.mkdir(f"{script_path}\\logs\\cache")
-    args_ = f"-v {vod.vod_id} -o {script_path}\\logs\\cache\\"
+    args_ = f"-v {vod.vod_id} -o --quiet {script_path}\\logs\\cache\\"
     script = f"{tcd_path} {args_}"
     file_name = f"{vod.vod_name} [{vod.vod_date}]"
     for sym in ["\\", "|", "/", ":", "?", "*", "<", ">", '"']:
@@ -61,7 +61,7 @@ def log_download(vod):
 
 
 def message_dict(vod):
-    log_path,log_named = log_download(vod)
+    log_path, log_named = log_download(vod)
     if log_path == "path error":
         return "path error"
 
