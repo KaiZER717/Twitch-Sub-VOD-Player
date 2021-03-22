@@ -40,7 +40,7 @@ def log_download(vod):
         os.mkdir(f"{script_path}\\logs\\{vod.channel}")
     if not os.path.exists(f"{script_path}\\logs\\cache\\"):
         os.mkdir(f"{script_path}\\logs\\cache")
-    args_ = f"-v {vod.vod_id} -q -o {script_path}\\logs\\cache\\"
+    args_ = f"-v {vod.vod_id} -o {script_path}\\logs\\cache\\"
     script = f"{tcd_path} {args_}"
     file_name = f"{vod.vod_name} [{vod.vod_date}]"
     for sym in ["\\", "|", "/", ":", "?", "*", "<", ">", '"']:
