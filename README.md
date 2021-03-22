@@ -8,7 +8,7 @@ pip install -r requirements.txt
   => set your twitch client_id and client_secret
  
 # launch
-=> main.py
+=> main.pyw
   => choose channel
   => choose VOD
 
