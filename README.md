@@ -12,4 +12,8 @@ pip install -r requirements.txt
   => choose channel
   => choose VOD
   
-##### packed onefile exe version: https://drive.google.com/file/d/1mBOel7vc_O4Ml4H7-uC_fB8BAL1-ztmV
+  
+  
+## One-file version requires only VLC Player
+
+### packed one-file version: https://drive.google.com/file/d/1mBOel7vc_O4Ml4H7-uC_fB8BAL1-ztmV
