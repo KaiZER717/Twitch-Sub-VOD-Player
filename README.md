@@ -1,4 +1,4 @@
-## !! Requires python 3.7 + and VLC Player !!
+## Script requires python 3.7 (or higher) and VLC Player 
 
 ## installing requirements
 pip install -r requirements.txt
