@@ -1,18 +1,24 @@
-import datetime
 import sys
-import tkinter.font as tkFont
-from os import path
-from sys import version_info
+import os
+
+
+import vlc
+import datetime
+import base64
+from io import BytesIO
+
+
 from tkinter import *
+import tkinter.font as tkFont
 from tkinter import scrolledtext, ttk
 from ttkthemes import ThemedTk
 from PIL import Image, ImageTk
-import vlc
-import sys, os
+
 import chat
 import find_vod
+import _constants
 
-if not version_info.major == 3 and version_info.minor >= 7:
+if not sys.version_info.major == 3 and  sys.version_info.minor >= 7:
     sys.exit(1)
 
 
@@ -67,15 +73,18 @@ class MainApplication(ThemedTk):
 class Child(ThemedTk):
     def __init__(self, vod):
         super().__init__(theme="equilux")
-
         self.geometry("1280x720")
         self.minsize(width=1000, height=650)
         self.font_tp = tkFont.Font(family="roobert", size=11)
-        self.play_icon = ImageTk.PhotoImage(master=self, file="icon.png")
-        self.title(vod.vod_name)
-        self.thread_status = True
+        im = Image.open(BytesIO(base64.b64decode(_constants.encoded_icon)))
+        self.play_icon = ImageTk.PhotoImage(master=self, image=im)
 
         self.vod = vod
+
+        self.title(self.vod.vod_name)
+
+        self.thread_status = True
+
         self.setup_ui()
         self.vlc_setup()
 
@@ -144,32 +153,16 @@ class Child(ThemedTk):
         self.player.play()
         self.printed = []
         self.downloaded = False
-        self.after(20, func=self.gui_update)
+        self.after(250, func=self.gui_update)
 
     def gui_update(self):
         if self.thread_status:
-            self.player_frame.focus()
-            # Player playing media
-            if vlc.libvlc_media_player_is_playing(self.player) == 1:
-                # Chat window updating
-                messages = chat.message_dict(self.vod)
-                if messages == "path error":
-                    self.on_closing()
-                if not self.downloaded:
-                    if path.exists(messages[1]):
-                        self.downloaded = True
-                messages = messages[0]
-                timecode = str(int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1)
-                if timecode in messages:
-                    if len(messages[timecode]) != 1:
-                        for mes1 in messages[timecode]:
-                            if mes1.key not in self.printed:
-                                self.print_mess(mes1)
-                                self.printed.append(mes1.key)
-                    else:
-                        if messages[timecode][0].key not in self.printed:
-                            self.print_mess(messages[timecode][0])
-                            self.printed.append(messages[timecode][0].key)
+            timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1
+            if vlc.libvlc_media_player_is_playing(self.player) == 1 and timecode >= 0:
+                for mes in chat.message_dict(self.vod, timecode):
+                    if mes.comment_id not in self.printed:
+                        self.print_mess(mes)
+                        self.printed.append(mes.comment_id)
 
                 # UI updating
                 time_sign = vlc.libvlc_media_player_get_time(self.player)
@@ -179,19 +172,20 @@ class Child(ThemedTk):
                 self.scal.set(time_sign / lenght)
                 self.player.set_rate(float((self.speedVar.get())[1:]))
 
-            self.after(20, func=self.gui_update)
+            self.after(250, func=self.gui_update)
 
     def print_mess(self, mess):
-        self.console.configure(state='normal')  # enable insert
-        self.console.insert(END, str(mess.timesign) + " ", 'timesign')
+
+        self.console.configure(state='normal')
+        self.console.insert(END, mess.formated_time() + " ", 'timesign')
         self.console.tag_config('timesign', foreground='#C0C0C0')
-        self.console.insert(END, str(mess.sender), str(mess.sender))
-        self.console.tag_config(str(mess.sender), foreground=mess.colour)
+        self.console.insert(END, mess.username, mess.username)
+        self.console.tag_config(mess.username, foreground=mess.usercolor)
         self.console.insert(END, ": ", 'mess')
-        self.console.insert(END, str(mess.mess) + "\n", 'mess')
+        self.console.insert(END, mess.message + "\n", 'mess')
         self.console.tag_config('mess', foreground='#FFFFFF')
         self.console.yview(END)  # autoscroll
-        self.console.configure(state='disabled')  # disable editing
+        self.console.configure(state='disabled')
 
     def get_navscale_motion(self, event):
         if vlc.libvlc_media_player_is_playing(self.player):
@@ -206,6 +200,7 @@ class Child(ThemedTk):
         vlc.libvlc_audio_set_volume(self.player, self.vol_scal.get())
 
     def play_pause(self):
+        self.player_frame.focus()
         vlc.libvlc_media_player_pause(self.player)
 
     def on_closing(self):
