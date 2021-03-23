@@ -11,5 +11,5 @@ pip install -r requirements.txt
 => main.py
   => choose channel
   => choose VOD
-
-## if have problems with chat, delete the folder logs/cache
+  
+## packed exe onefile version: https://drive.google.com/file/d/1mBOel7vc_O4Ml4H7-uC_fB8BAL1-ztmV
