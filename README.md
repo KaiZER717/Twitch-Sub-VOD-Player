@@ -3,13 +3,10 @@
 ## installing requirements
 pip install -r requirements.txt
 
-## first launch
-=> open cmd, print "tcd"
-  => set your twitch client_id and client_secret
- 
+
 # launch
-=> main.py
+=> main.pyw
   => choose channel
   => choose VOD
 
-## if have problems with chat, delete the folder logs/cache
+Packed exe file: https://drive.google.com/file/d/1tBcy1LVTfWS_L2bkTlbAwLhMuXsPWVkw/view?usp=sharing
