@@ -34,7 +34,6 @@ def message_dict(vod, offset):
     comments_ = requests.get(base_url, headers=headers).json()["comments"]
     messages = []
     for mess in comments_:
-        if int(mess["content_offset_seconds"]) == offset:
-            messages.append(Comments(mess))
+        messages.append(Comments(mess))
 
     return messages

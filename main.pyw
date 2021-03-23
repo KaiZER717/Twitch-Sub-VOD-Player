@@ -1,12 +1,10 @@
 import sys
 import os
 
-
 import vlc
 import datetime
 import base64
 from io import BytesIO
-
 
 from tkinter import *
 import tkinter.font as tkFont
@@ -18,7 +16,7 @@ import chat
 import find_vod
 import _constants
 
-if not sys.version_info.major == 3 and  sys.version_info.minor >= 7:
+if not sys.version_info.major == 3 and sys.version_info.minor >= 7:
     sys.exit(1)
 
 
@@ -78,7 +76,7 @@ class Child(ThemedTk):
         self.font_tp = tkFont.Font(family="roobert", size=11)
         im = Image.open(BytesIO(base64.b64decode(_constants.encoded_icon)))
         self.play_icon = ImageTk.PhotoImage(master=self, image=im)
-
+        self.last_request = []
         self.vod = vod
 
         self.title(self.vod.vod_name)
@@ -159,10 +157,18 @@ class Child(ThemedTk):
         if self.thread_status:
             timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1
             if vlc.libvlc_media_player_is_playing(self.player) == 1 and timecode >= 0:
-                for mes in chat.message_dict(self.vod, timecode):
-                    if mes.comment_id not in self.printed:
-                        self.print_mess(mes)
-                        self.printed.append(mes.comment_id)
+                if len(self.last_request) > 1:
+                    if timecode > self.last_request[-1].sec_offset or \
+                            timecode < self.last_request[0].sec_offset:
+                        self.last_request = chat.message_dict(self.vod, timecode)
+                    else:
+                        for mes in self.last_request:
+                            if int(mes.sec_offset) == timecode:
+                                if mes.comment_id not in self.printed:
+                                    self.print_mess(mes)
+                                    self.printed.append(mes.comment_id)
+                else:
+                    self.last_request = chat.message_dict(self.vod, timecode)
 
                 # UI updating
                 time_sign = vlc.libvlc_media_player_get_time(self.player)
