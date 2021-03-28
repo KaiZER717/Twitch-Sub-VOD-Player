@@ -11,7 +11,7 @@ pip install -r requirements.txt
   => choose channel
   => choose VOD
   
-## Packed version
+## Packed version (exe)
 
 ### https://drive.google.com/file/d/1kVgapmGfKFFMnG3t53wtCUWQm7oF8yqt
 
