@@ -10,6 +10,7 @@ from tkinter import *
 import tkinter.font as tkFont
 from tkinter import scrolledtext, ttk
 from ttkthemes import ThemedTk
+import tkinter.messagebox as mb
 from PIL import Image, ImageTk
 
 import chat
@@ -48,18 +49,24 @@ class MainApplication(ThemedTk):
         self.entery.focus_set()
 
     def callback(self):
+
         self.vodVar = StringVar()
         vodlink_res = self.resVar.get()
         if vodlink_res == "1080p60":
             vodlink_res = "chunked"
+
         self.vodlst = find_vod.vod_list_creater(str(self.entery.get()), vodlink_res)
         if type(self.vodlst) != list:
+            mb.showinfo("VODPlayer", f"  {self.vodlst}")
+            self.entery.delete(0, 'end')
             return
+
         self.voddict = {}
         for vd in self.vodlst:
             self.voddict[vd.__str__()] = vd
 
         self.button_play["state"] = ACTIVE
+
         self.vod_setting = ttk.OptionMenu(self, self.vodVar, *self.vodlst)
         self.vod_setting.place(relx=.02, rely=.25, relwidth=.67)
 
@@ -72,15 +79,14 @@ class Child(ThemedTk):
     def __init__(self, vod):
         super().__init__(theme="equilux")
         self.geometry("1280x720")
+        self.title(vod.vod_name)
         self.minsize(width=1000, height=650)
         self.font_tp = tkFont.Font(family="roobert", size=11)
-        im = Image.open(BytesIO(base64.b64decode(_constants.encoded_icon)))
-        self.play_icon = ImageTk.PhotoImage(master=self, image=im)
+
+        self.decodec_image = Image.open(BytesIO(base64.b64decode(_constants.encoded_icon)))
+        self.play_icon = ImageTk.PhotoImage(master=self, image=self.decodec_image)
         self.last_request = []
         self.vod = vod
-
-        self.title(self.vod.vod_name)
-
         self.thread_status = True
 
         self.setup_ui()
@@ -150,46 +156,61 @@ class Child(ThemedTk):
         self.player.set_hwnd(self.player_frame.winfo_id())
         self.player.play()
         self.printed = []
-        self.downloaded = False
+
         self.after(250, func=self.gui_update)
 
     def gui_update(self):
         if self.thread_status:
-            timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1
-            if vlc.libvlc_media_player_is_playing(self.player) == 1 and timecode >= 0:
-                if len(self.last_request) > 1:
-                    if timecode > self.last_request[-1].sec_offset or \
-                            timecode < self.last_request[0].sec_offset:
-                        self.last_request = chat.message_dict(self.vod, timecode)
-                    else:
-                        for mes in self.last_request:
-                            if int(mes.sec_offset) == timecode:
-                                if mes.comment_id not in self.printed:
-                                    self.print_mess(mes)
-                                    self.printed.append(mes.comment_id)
+            timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000)
+            if self.speedVar.get() in ["x2", "x1.5"]:
+                self.mes_dict_reader(timecode - 1)
+            self.mes_dict_reader(timecode)
+        self.after(250, func=self.gui_update)
+
+    def mes_dict_reader(self, timecode):
+        if vlc.libvlc_media_player_is_playing(self.player) == 1 and timecode > 0:
+            if len(self.last_request) > 1:
+                if timecode not in range(self.last_request[0].sec_offset, self.last_request[-1].sec_offset):
+                    if timecode > self.first_mess_timecode:
+                        self.last_request = chat.message_dict(self.vod, timecode, self)
                 else:
-                    self.last_request = chat.message_dict(self.vod, timecode)
+                    for mes in self.last_request:
+                        if mes.sec_offset == timecode:
+                            if mes.comment_id not in self.printed:
+                                self.print_mess(mes)
+                                self.printed.append(mes.comment_id)
+            else:
+                self.last_request = chat.message_dict(self.vod, 0, self)
+                self.first_mess_timecode = self.last_request[0].sec_offset
 
-                # UI updating
-                time_sign = vlc.libvlc_media_player_get_time(self.player)
-                lenght = vlc.libvlc_media_player_get_length(self.player) + (1 / 10 * 8)
-                formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
-                self.timelabel["text"] = formated
-                self.scal.set(time_sign / lenght)
-                self.player.set_rate(float((self.speedVar.get())[1:]))
-
-            self.after(250, func=self.gui_update)
+            # UI updating
+            time_sign = vlc.libvlc_media_player_get_time(self.player)
+            lenght = vlc.libvlc_media_player_get_length(self.player) + (1 / 10 * 8)
+            formated = str(datetime.timedelta(milliseconds=time_sign))[:7]
+            self.timelabel["text"] = formated
+            self.scal.set(time_sign / lenght)
+            self.player.set_rate(float((self.speedVar.get())[1:]))
 
     def print_mess(self, mess):
 
         self.console.configure(state='normal')
         self.console.insert(END, mess.formated_time() + " ", 'timesign')
         self.console.tag_config('timesign', foreground='#C0C0C0')
+
         self.console.insert(END, mess.username, mess.username)
         self.console.tag_config(mess.username, foreground=mess.usercolor)
-        self.console.insert(END, ": ", 'mess')
-        self.console.insert(END, mess.message + "\n", 'mess')
+
+        if not mess.isaction:
+            self.console.insert(END, ": ", 'mess')
+
+        for fragment in mess.msg:
+            if type(fragment) == str:
+                self.console.insert(END, f" {fragment}", 'mess')
+            else:
+                self.console.image_create(END, image=fragment)
+        self.console.insert(END, '\n')
         self.console.tag_config('mess', foreground='#FFFFFF')
+
         self.console.yview(END)  # autoscroll
         self.console.configure(state='disabled')
 

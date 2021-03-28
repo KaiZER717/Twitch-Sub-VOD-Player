@@ -1,4 +1,5 @@
 import requests
+import _constants
 
 
 class Vods:
@@ -20,23 +21,28 @@ class Vods:
 
 
 def vod_list_creater(channel_name, res="chunked"):
-    id_req = requests.get(f'https://api.twitch.tv/kraken/users?login={channel_name}',
-                          headers={'Accept': 'application/vnd.twitchtv.v5+json',
-                                   'Client-ID': 'gp762nuuoqcoxypju8c569th9wz7q5'}).json()
+    # Request headers.
+    headers = {'Accept': _constants.application,
+               'Client-ID': _constants.client_id}
+
+    # Requesting channel id from api, using channel name.
+    id_req_link = f"https://api.twitch.tv/kraken/users?login={channel_name}"
+    id_req = requests.get(id_req_link, headers=headers).json()
+
     if 'error' in id_req:
         return "Invalid channel name,try again..."
     if id_req['_total'] == 0:
         return "Invalid channel name,try again..."
-
     channel_id = id_req['users'][0]['_id']
-    video_req = requests.get(
-        f"https://api.twitch.tv/kraken/channels/{channel_id}/videos?broadcast_type=archive&limit=100",
-        headers={'Accept': 'application/vnd.twitchtv.v5+json',
-                 'Client-ID': '3y57z5uv1413gc7j320ljq6bpk83wy'}).json()
+
+    # Requesting links of vods from api, using channel id.
+    video_req_link = f"https://api.twitch.tv/kraken/channels/{channel_id}/videos?broadcast_type=archive&limit=100"
+    video_req = requests.get(video_req_link, headers=headers).json()
 
     if len(dict(video_req)["videos"]) == 0:
         return "Vod list is empty,try again..."
 
+    # Creating list of Vod objects.
     dict_resp = dict(video_req)
     vod_list = []
     for vod in dict_resp["videos"]:
@@ -45,6 +51,6 @@ def vod_list_creater(channel_name, res="chunked"):
         vod_date = str(vod["created_at"])
         vod_name = str(vod["title"])
         vod_link = str(vod['seek_previews_url'].split("storyboards")[0])
-        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght,res))
+        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght, res))
 
     return vod_list
