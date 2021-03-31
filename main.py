@@ -119,7 +119,7 @@ class Child(ThemedTk):
         self.speedVar.set(self.speed_list[3])
         self.speed_setting = ttk.OptionMenu(self, self.speedVar, *self.speed_list)
 
-        self.console['background'] = "#464646"
+        self.console['background'] = "#18181b"
         self['background'] = "#464646"
         self.scal['background'] = "#464646"
         self.scal['foreground'] = "#464646"
@@ -143,7 +143,7 @@ class Child(ThemedTk):
         self.timelabel.place(relx=.65, rely=0.953, relwidth=.06, relheight=0.05)
         self.speed_setting.place(relx=.71, rely=0.953, relwidth=.05, relheight=.04)
         self.hseparator.place(relx=0, rely=.94, relwidth=.78, relheight=0.003)
-        self.console.place(relx=.785, rely=0, relwidth=.215, relheight=1)
+        self.console.place(relx=.782, rely=0, relwidth=.215, relheight=1)
         self.vseparator.place(relx=.78, rely=0, relwidth=0.001, relheight=1)
 
     def vlc_setup(self):
@@ -157,31 +157,32 @@ class Child(ThemedTk):
         self.player.play()
         self.printed = []
 
-        self.after(250, func=self.gui_update)
+        self.after(200, func=self.gui_update)
 
     def gui_update(self):
         if self.thread_status:
-            timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000)
+            timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1
             if self.speedVar.get() in ["x2", "x1.5"]:
                 self.mes_dict_reader(timecode - 1)
             self.mes_dict_reader(timecode)
-        self.after(250, func=self.gui_update)
+        self.after(200, func=self.gui_update)
 
     def mes_dict_reader(self, timecode):
-        if vlc.libvlc_media_player_is_playing(self.player) == 1 and timecode > 0:
-            if len(self.last_request) > 1:
-                if timecode not in range(self.last_request[0].sec_offset, self.last_request[-1].sec_offset):
-                    if timecode > self.first_mess_timecode:
-                        self.last_request = chat.message_dict(self.vod, timecode, self)
+        if vlc.libvlc_media_player_is_playing(self.player) == 1:
+            if timecode > 0:
+                if len(self.last_request) > 0:
+                    if timecode < self.last_request[0].sec_offset or timecode > self.last_request[-1].sec_offset:
+                        if timecode > self.first_mess_timecode:
+                            self.last_request = chat.message_dict(timecode, self)
+                    else:
+                        for mes in self.last_request:
+                            if mes.sec_offset == timecode:
+                                if mes.comment_id not in self.printed:
+                                    self.print_mess(mes)
+                                    self.printed.append(mes.comment_id)
                 else:
-                    for mes in self.last_request:
-                        if mes.sec_offset == timecode:
-                            if mes.comment_id not in self.printed:
-                                self.print_mess(mes)
-                                self.printed.append(mes.comment_id)
-            else:
-                self.last_request = chat.message_dict(self.vod, 0, self)
-                self.first_mess_timecode = self.last_request[0].sec_offset
+                    self.first_mess_timecode = int(chat.message_dict(0, self, 1))
+                    self.last_request = chat.message_dict(self.first_mess_timecode, self)
 
             # UI updating
             time_sign = vlc.libvlc_media_player_get_time(self.player)
@@ -196,6 +197,10 @@ class Child(ThemedTk):
         self.console.configure(state='normal')
         self.console.insert(END, mess.formated_time() + " ", 'timesign')
         self.console.tag_config('timesign', foreground='#C0C0C0')
+
+        for badge in mess.userbadges:
+            if type(badge) != str:
+                self.console.image_create(END, image=badge)
 
         self.console.insert(END, mess.username, mess.username)
         self.console.tag_config(mess.username, foreground=mess.usercolor)
@@ -237,7 +242,11 @@ class Child(ThemedTk):
 
 
 def main():
-    mainplayer = MainApplication()
+    debug = False
+    if not debug:
+        mainplayer = MainApplication()
+    else:
+        mainplayer = Child(find_vod.vod_list_creater("shroud")[1])
     mainplayer.mainloop()
     sys.exit(7)
 

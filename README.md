@@ -1,15 +1,19 @@
-## !! Requires python 3.7 + and VLC Player !!
+## Added support for BTTV/FFZ/Global emotes.  
 
-## installing requirements
+## !! Script requires python 3.7 + and VLC Player !!
+
+### installing requirements
 pip install -r requirements.txt
 
-## first launch
-=> open cmd, print "tcd"
-  => set your twitch client_id and client_secret
  
-# launch
+### launch
 => main.py
   => choose channel
   => choose VOD
+  
+## Packed version (exe)
 
-## if have problems with chat, delete the folder logs/cache
+### https://drive.google.com/file/d/1cH6Qg_Bm5g6TRNy5QgHBwyV71wrsWrTM
+
+
+![Screenshot_1](https://user-images.githubusercontent.com/69356471/113199331-0d315600-9278-11eb-9ed6-4f209280ca10.png)
