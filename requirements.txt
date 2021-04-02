@@ -1,3 +1,5 @@
 python_vlc==3.0.11115
-
 requests==2.25.1
+Pillow~=8.1.2
+future~=0.18.2
+ttkthemes~=3.2.2

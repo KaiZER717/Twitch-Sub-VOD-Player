@@ -1,10 +1,9 @@
 import datetime
-import time
-import requests
 import _constants
 from urllib.request import urlopen
 from PIL import Image, ImageTk
 from io import BytesIO
+import requests
 
 loaded_emotes = {}
 bttv_linked_emotes = {}
@@ -13,6 +12,7 @@ linked_badges = {"subscriber": {}}
 loaded_badges = {}
 
 headers = {'Client-ID': _constants.client_id}
+reqthread = ""
 
 
 class Comments:
@@ -31,7 +31,10 @@ class Comments:
 
         if 'user_badges' in rawcomment['message']:
             for badge in rawcomment['message']['user_badges']:
-                self.userbadges.append(channel_badges(badge['_id'], badge['version'], root))
+                badge_ver = badge['version']
+                if badge['_id'] == "subscriber" and len(badge['version']) > 2:
+                    badge_ver = str(int(badge['version'][2:]))
+                self.userbadges.append(channel_badges(badge['_id'], badge_ver, root))
 
         if 'fragments' in rawcomment['message']:
             for fragment in rawcomment['message']['fragments']:
@@ -88,8 +91,9 @@ def badge_by_name(channel_id):
                      'sub-gift-leader': 'https://static-cdn.jtvnw.net/badges/v1/21656088-7da2-4467-acd2-55220e1f45ad/1',
                      'sub-gifter': 'https://static-cdn.jtvnw.net/badges/v1/f1d8486f-eb2e-4553-b44f-4d614617afc1/1',
                      'vip': 'https://static-cdn.jtvnw.net/badges/v1/b817aba4-fad8-49e2-b88a-7cc744dfa6ec/1'}
+
     for subbagde in sub_bages_ids:
-        if len(subbagde) == 4:
+        if len(subbagde) > 2:
             continue
         linked_badges["subscriber"][subbagde] = sub_bages_ids[subbagde]['image_url_1x']
 
@@ -103,21 +107,23 @@ def message_dict(offset, root, getfirst=0):
     if getfirst == 1:
         comment_req_link = f"https://api.twitch.tv/v5/videos/{vod.vod_id}/comments?"
         return requests.get(comment_req_link, headers=headers).json()["comments"][0]["content_offset_seconds"]
+
     if len(bttv_linked_emotes) == 0:
         bttv_linked_emotes = btfz_emote_dict_by_id(vod.channelid, vod.channel)
     if len(linked_badges) == 1:
         linked_badges = badge_by_name(vod.channelid)
+
     comment_req_link = f"https://api.twitch.tv/v5/videos/{vod.vod_id}/comments?content_offset_seconds={offset}"
     comments_ = requests.get(comment_req_link, headers=headers).json()["comments"]
+
     res = []
     for comm in comments_:
-        if offset - 15 > comm["content_offset_seconds"]:
+        if offset - 25 > comm["content_offset_seconds"]:
             continue
-        if offset - 15 < comm["content_offset_seconds"] < offset + 15:
+        if offset - 25 < comm["content_offset_seconds"] < offset + 15:
             res.append(Comments(comm, root))
-        if offset + 15 < comm["content_offset_seconds"]:
+        if offset + 25 < comm["content_offset_seconds"]:
             break
-
     return res
 
 

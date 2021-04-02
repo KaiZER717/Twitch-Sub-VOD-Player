@@ -3,7 +3,7 @@ import _constants
 
 
 class Vods:
-    def __init__(self, vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght, res_fps,channel_id):
+    def __init__(self, vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght,channel_id):
         msk_date = vod_date.split("T")[0]
         msk_hour = str(int(vod_date.split("T")[1].split(":")[0]) + 3)
         msk_min = vod_date.split("T")[1].split(":")[1]
@@ -12,7 +12,7 @@ class Vods:
         self.vod_date = f"{msk_date} {msk_hour}:{msk_min}:{msk_sec[:-1]}"
         self.vod_id = vod_id[1:]
         self.vod_name = vod_name
-        self.vod_link = vod_link + f"{res_fps}/index-dvr.m3u8"
+        self.vod_link = vod_link + "{res_fps}/index-dvr.m3u8"
         self.channel = channel_name
         self.channelid = channel_id
         self.vod_lenght = vod_lenght
@@ -21,7 +21,7 @@ class Vods:
         return self.vod_name[:35] + "... | " + self.vod_date
 
 
-def vod_list_creater(channel_name, res="chunked"):
+def vod_list_creater(channel_name):
     # Request headers.
     headers = {'Accept': _constants.application,
                'Client-ID': _constants.client_id}
@@ -31,9 +31,9 @@ def vod_list_creater(channel_name, res="chunked"):
     id_req = requests.get(id_req_link, headers=headers).json()
 
     if 'error' in id_req:
-        return "Invalid channel name,try again..."
+        return "Invalid channel name, try again..."
     if id_req['_total'] == 0:
-        return "Invalid channel name,try again..."
+        return "Invalid channel name, try again..."
     channel_id = id_req['users'][0]['_id']
 
     # Requesting links of vods from api, using channel id.
@@ -52,6 +52,6 @@ def vod_list_creater(channel_name, res="chunked"):
         vod_date = str(vod["created_at"])
         vod_name = str(vod["title"])
         vod_link = str(vod['seek_previews_url'].split("storyboards")[0])
-        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght, res,channel_id))
+        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght,channel_id))
 
     return vod_list
