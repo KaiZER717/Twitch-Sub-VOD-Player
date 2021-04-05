@@ -19,11 +19,10 @@ class Comments:
     def __init__(self, rawcomment, root):
         self.sec_offset = int(rawcomment['content_offset_seconds'])
         self.username = rawcomment['commenter']['display_name']
-        self.message = rawcomment['message']['body']
         self.isaction = rawcomment['message']['is_action']
-        self.comment_id = rawcomment['_id']
         self.userbadges = []
         self.msg = []
+
         if "user_color" in rawcomment['message']:
             self.usercolor = rawcomment['message']['user_color']
         else:
@@ -96,35 +95,30 @@ def badge_by_name(channel_id):
         if len(subbagde) > 2:
             continue
         linked_badges["subscriber"][subbagde] = sub_bages_ids[subbagde]['image_url_1x']
-
     return linked_badges
 
 
-# Creating list of comments in this period: len(list) = 48.
-def message_dict(offset, root, getfirst=0):
-    global bttv_linked_emotes, headers, linked_badges
-    vod = root.vod
-    if getfirst == 1:
-        comment_req_link = f"https://api.twitch.tv/v5/videos/{vod.vod_id}/comments?"
-        return requests.get(comment_req_link, headers=headers).json()["comments"][0]["content_offset_seconds"]
-
+def linking_images(vod):
+    global bttv_linked_emotes, linked_badges
     if len(bttv_linked_emotes) == 0:
         bttv_linked_emotes = btfz_emote_dict_by_id(vod.channelid, vod.channel)
     if len(linked_badges) == 1:
         linked_badges = badge_by_name(vod.channelid)
 
+
+# Creating list of comments in this period: len(list) = 48.
+def message_dict(offset, root, getfirst=0):
+    global headers
+    vod = root.vod
+
+    if getfirst == 1:
+        comment_req_link = f"https://api.twitch.tv/v5/videos/{vod.vod_id}/comments?"
+        return requests.get(comment_req_link, headers=headers).json()["comments"][0]["content_offset_seconds"]
+
     comment_req_link = f"https://api.twitch.tv/v5/videos/{vod.vod_id}/comments?content_offset_seconds={offset}"
     comments_ = requests.get(comment_req_link, headers=headers).json()["comments"]
 
-    res = []
-    for comm in comments_:
-        if offset - 25 > comm["content_offset_seconds"]:
-            continue
-        if offset - 25 < comm["content_offset_seconds"] < offset + 15:
-            res.append(Comments(comm, root))
-        if offset + 25 < comm["content_offset_seconds"]:
-            break
-    return res
+    return comments_
 
 
 def emote_by_id(emote_id, root):
@@ -151,18 +145,12 @@ def btfz_emote_dict_by_id(channel_id, channel_name):
     comment_req_link = f"https://api.betterttv.net/3/cached/users/twitch/{channel_id}"
     emote_list_request = requests.get(comment_req_link).json()
 
-    channels_emotes = {}
-    shared_emotes = {}
-
     if 'channelEmotes' in emote_list_request:
-        channels_emotes = emote_list_request['channelEmotes']
-    if 'sharedEmotes' in emote_list_request:
-        shared_emotes = emote_list_request['sharedEmotes']
-    if len(channels_emotes) + len(shared_emotes) != 0:
-
-        for emote_ in channels_emotes:
+        for emote_ in emote_list_request['channelEmotes']:
             emote_list[emote_["code"]] = [emote_["imageType"], f"https://cdn.betterttv.net/emote/{emote_['id']}/1x"]
-        for emote in shared_emotes:
+
+    if 'sharedEmotes' in emote_list_request:
+        for emote in emote_list_request['sharedEmotes']:
             emote_list[emote["code"]] = [emote["imageType"], f"https://cdn.betterttv.net/emote/{emote['id']}/1x"]
 
     return emote_list

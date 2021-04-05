@@ -8,7 +8,6 @@ from tkinter import DISABLED, StringVar, ACTIVE, WORD, Scale, messagebox, \
     scrolledtext, ttk, font, HORIZONTAL, VERTICAL, Label, scrolledtext, END
 from ttkthemes import ThemedTk
 from PIL import Image, ImageTk
-
 import chat
 import find_vod
 import _constants
@@ -120,9 +119,11 @@ class Player(ThemedTk):
         self.vod = vod
         self.poslenght = 0
         self.thread_status = True
+        chat.linking_images(self.vod)
 
         self.setup_ui()
         self.vlc_setup()
+        self.after(150, func=self.gui_update)
 
     def setup_ui(self):
 
@@ -147,7 +148,7 @@ class Player(ThemedTk):
         self.vseparator = ttk.Separator(self, orient=VERTICAL)
         self.hseparator = ttk.Separator(self, orient=HORIZONTAL)
 
-        self.speed_list = ["x0.25", "x0.5", "x1", "x1.5", "x2"]
+        self.speed_list = ["x0.25", "x0.5", "x1", "x1.25", "x1.5", "x2"]
         self.speedVar = StringVar(self)
         self.speedVar.set(self.speed_list[2])
         self.speed_setting = ttk.OptionMenu(self, self.speedVar, self.speed_list[2], *self.speed_list)
@@ -162,8 +163,8 @@ class Player(ThemedTk):
         self.timelabel['foreground'] = "#c8c8c8"
         self.scal.bind("<B1-Motion>", self.get_navscale_motion)
         self.scal.bind("<ButtonRelease-1>", self.get_navscale_release)
-        self.bind("<KeyRelease-Left>", self.arrow_realese)
-        self.bind("<KeyRelease-Right>", self.arrow_realese)
+        self.bind("<KeyRelease-Left>", self.left_realese)
+        self.bind("<KeyRelease-Right>", self.right_realese)
         self.bind("<Left>", self.left_press)
         self.bind("<Right>", self.right_press)
 
@@ -178,7 +179,7 @@ class Player(ThemedTk):
         self.vol_scal.place(relx=.08, rely=0.94, relwidth=.05, relheight=.1)
         self.scal.place(relx=.15, rely=0.94, relwidth=.5, relheight=.1)
         self.timelabel.place(relx=.65, rely=0.953, relwidth=.06, relheight=0.05)
-        self.speed_setting.place(relx=.71, rely=0.953, relwidth=.05, relheight=.04)
+        self.speed_setting.place(relx=.71, rely=0.953, relwidth=.0525, relheight=.04)
         self.hseparator.place(relx=0, rely=.94, relwidth=.78, relheight=0.003)
         self.console.place(relx=.782, rely=0, relwidth=.218, relheight=1)
         self.vseparator.place(relx=.78, rely=0, relwidth=0.001, relheight=1)
@@ -193,29 +194,34 @@ class Player(ThemedTk):
         self.player.set_hwnd(self.player_frame.winfo_id())
         self.player.play()
 
-        self.after(200, func=self.gui_update)
-
     def gui_update(self):
         if self.thread_status:
             if vlc.libvlc_media_player_is_playing(self.player) == 1:
                 timecode = int(vlc.libvlc_media_player_get_time(self.player) // 1000) - 1
-                if self.speedVar.get() in ["x2", "x1.5"]:
+                if self.speedVar.get() in ["x2", "x1.25", "x1.5"]:
                     self.mes_dict_reader(timecode - 1)
                 self.mes_dict_reader(timecode)
-            self.after(200, func=self.gui_update)
+            self.after(150, func=self.gui_update)
 
     def mes_dict_reader(self, timecode):
         if timecode > 0:
+            if self.poslenght == 0:
+                if vlc.libvlc_media_player_get_length(self.player) != 0:
+                    self.poslenght = float(str(10000 / vlc.libvlc_media_player_get_length(self.player))[:10])
+
             if len(self.last_request) > 0:
-                if timecode < self.last_request[0].sec_offset or timecode > self.last_request[-1].sec_offset:
+                if timecode < self.last_request[0]["content_offset_seconds"] or \
+                        timecode > self.last_request[-1]["content_offset_seconds"]:
                     if timecode > self.first_mess_timecode:
                         self.last_request = chat.message_dict(timecode, self)
                 else:
                     for mes in self.last_request:
-                        if mes.sec_offset == timecode:
-                            if mes.comment_id not in self.printed:
-                                self.print_mess(mes)
-                                self.printed.append(mes.comment_id)
+                        if int(mes["content_offset_seconds"]) == timecode:
+                            if mes['_id'] not in self.printed:
+                                self.print_mess(chat.Comments(mes, self))
+                                self.printed.append(mes['_id'])
+                        elif int(mes["content_offset_seconds"]) > timecode:
+                            break
             else:
                 self.first_mess_timecode = int(chat.message_dict(0, self, 1))
                 self.last_request = chat.message_dict(self.first_mess_timecode, self)
@@ -238,6 +244,7 @@ class Player(ThemedTk):
         for badge in mess.userbadges:
             if type(badge) != str:
                 self.console.image_create(END, image=badge)
+                self.console.insert(END, " ")
 
         self.console.insert(END, mess.username, mess.username)
         self.console.tag_config(mess.username, foreground=mess.usercolor)
@@ -274,22 +281,25 @@ class Player(ThemedTk):
 
     def right_press(self, event):
         if vlc.libvlc_media_player_is_playing(self.player) == 1:
-            vlc.libvlc_media_player_pause(self.player)
-        if self.poslenght == 0:
-            self.poslenght = float(str(20000 / vlc.libvlc_media_player_get_length(self.player))[:8])
+            self.player.pause()
         self.scal.set(self.scal.get() + self.poslenght)
 
     def left_press(self, event):
         if vlc.libvlc_media_player_is_playing(self.player) == 1:
-            vlc.libvlc_media_player_pause(self.player)
-        if self.poslenght == 0:
-            self.poslenght = float(str(20000 / vlc.libvlc_media_player_get_length(self.player))[:8])
+            self.player.pause()
         self.scal.set(self.scal.get() - self.poslenght)
 
-    def arrow_realese(self, event):
-        vlc.libvlc_media_player_set_position(self.player, self.scal.get())
+    def left_realese(self, event):
+        self.scal.set(self.scal.get() - self.poslenght)
+        self.player.set_position(self.scal.get())
         if vlc.libvlc_media_player_is_playing(self.player) == 0:
-            vlc.libvlc_media_player_pause(self.player)
+            self.player.play()
+
+    def right_realese(self, event):
+        self.scal.set(self.scal.get() + self.poslenght)
+        self.player.set_position(self.scal.get())
+        if vlc.libvlc_media_player_is_playing(self.player) == 0:
+            self.player.play()
 
     def on_closing(self):
         self.thread_status = False
