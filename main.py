@@ -118,12 +118,13 @@ class Player(ThemedTk):
         self.printed = []
         self.vod = vod
         self.poslenght = 0
+        self.guiupdate_rate = 500
         self.thread_status = True
         chat.linking_images(self.vod)
 
         self.setup_ui()
         self.vlc_setup()
-        self.after(150, func=self.gui_update)
+        self.after(self.guiupdate_rate, func=self.gui_update)
 
     def setup_ui(self):
 
@@ -185,6 +186,7 @@ class Player(ThemedTk):
         self.vseparator.place(relx=.78, rely=0, relwidth=0.001, relheight=1)
 
     def vlc_setup(self):
+
         # VLC player creating
         self.Instance = vlc.Instance()
         self.player = self.Instance.media_player_new()
@@ -201,7 +203,7 @@ class Player(ThemedTk):
                 if self.speedVar.get() in ["x2", "x1.25", "x1.5"]:
                     self.mes_dict_reader(timecode - 1)
                 self.mes_dict_reader(timecode)
-            self.after(150, func=self.gui_update)
+            self.after(self.guiupdate_rate, func=self.gui_update)
 
     def mes_dict_reader(self, timecode):
         if timecode > 0:
@@ -281,25 +283,25 @@ class Player(ThemedTk):
 
     def right_press(self, event):
         if vlc.libvlc_media_player_is_playing(self.player) == 1:
-            self.player.pause()
+            self.get_navscale_motion("<B1-Motion>")
         self.scal.set(self.scal.get() + self.poslenght)
 
     def left_press(self, event):
         if vlc.libvlc_media_player_is_playing(self.player) == 1:
-            self.player.pause()
+            self.get_navscale_motion("<B1-Motion>")
         self.scal.set(self.scal.get() - self.poslenght)
 
     def left_realese(self, event):
+        if vlc.libvlc_media_player_is_playing(self.player) == 1:
+            self.get_navscale_motion("<B1-Motion>")
         self.scal.set(self.scal.get() - self.poslenght)
-        self.player.set_position(self.scal.get())
-        if vlc.libvlc_media_player_is_playing(self.player) == 0:
-            self.player.play()
+        self.get_navscale_release("<ButtonRelease-1>")
 
     def right_realese(self, event):
+        if vlc.libvlc_media_player_is_playing(self.player) == 1:
+            self.get_navscale_motion("<B1-Motion>")
         self.scal.set(self.scal.get() + self.poslenght)
-        self.player.set_position(self.scal.get())
-        if vlc.libvlc_media_player_is_playing(self.player) == 0:
-            self.player.play()
+        self.get_navscale_release("<ButtonRelease-1>")
 
     def on_closing(self):
         self.thread_status = False
