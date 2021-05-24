@@ -3,7 +3,7 @@ import _constants
 
 
 class Vods:
-    def __init__(self, vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght,channel_id):
+    def __init__(self, vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght, channel_id, vodtype):
         msk_date = vod_date.split("T")[0]
         msk_hour = str(int(vod_date.split("T")[1].split(":")[0]) + 3)
         msk_min = vod_date.split("T")[1].split(":")[1]
@@ -12,7 +12,12 @@ class Vods:
         self.vod_date = f"{msk_date} {msk_hour}:{msk_min}:{msk_sec[:-1]}"
         self.vod_id = vod_id[1:]
         self.vod_name = vod_name
-        self.vod_link = vod_link + "{res_fps}/index-dvr.m3u8"
+        if vodtype == "archive":
+            self.vod_link = vod_link + "{res_fps}/index-dvr.m3u8"
+        elif vodtype == "highlight":
+            self.vod_link = vod_link + "{res_fps}" + f"/highlight-{self.vod_id}.m3u8"
+        elif vodtype == "upload":
+            self.vod_link = vod_link + "720p60/index-dvr.m3u8"
         self.channel = channel_name
         self.channelid = channel_id
         self.vod_lenght = vod_lenght
@@ -21,7 +26,7 @@ class Vods:
         return self.vod_name[:35] + "... | " + self.vod_date
 
 
-def vod_list_creater(channel_name):
+def vod_list_creater(channel_name, vodtype):
     # Request headers.
     headers = {'Accept': _constants.application,
                'Client-ID': _constants.client_id}
@@ -37,7 +42,7 @@ def vod_list_creater(channel_name):
     channel_id = id_req['users'][0]['_id']
 
     # Requesting links of vods from api, using channel id.
-    video_req_link = f"https://api.twitch.tv/kraken/channels/{channel_id}/videos?broadcast_type=archive&limit=100"
+    video_req_link = f"https://api.twitch.tv/kraken/channels/{channel_id}/videos?broadcast_type={vodtype}&limit=100"
     video_req = requests.get(video_req_link, headers=headers).json()
 
     if len(dict(video_req)["videos"]) == 0:
@@ -52,6 +57,5 @@ def vod_list_creater(channel_name):
         vod_date = str(vod["created_at"])
         vod_name = str(vod["title"])
         vod_link = str(vod['seek_previews_url'].split("storyboards")[0])
-        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght,channel_id))
-
+        vod_list.append(Vods(vod_id, vod_date, vod_name, vod_link, channel_name, vod_lenght, channel_id, vodtype))
     return vod_list
