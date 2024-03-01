@@ -8,6 +8,8 @@ pip install -r requirements.txt
  
 ### launch
 => main.py
+
+
   => choose channel
   => choose VOD
   
@@ -15,5 +17,5 @@ pip install -r requirements.txt
 
 ### https://drive.google.com/file/d/1cH6Qg_Bm5g6TRNy5QgHBwyV71wrsWrTM
 
-
-![Screenshot_1](https://user-images.githubusercontent.com/69356471/113199331-0d315600-9278-11eb-9ed6-4f209280ca10.png)
+![dwn](https://github.com/KaiZER717/Twitch-Sub-VOD-Player-With-Chat/assets/69356471/82e8cb9d-9ec5-4f11-859f-409329092601)
+![vdp](https://github.com/KaiZER717/Twitch-Sub-VOD-Player-With-Chat/assets/69356471/ca1fba28-e3be-4d1a-93a4-26eb354f0557)
